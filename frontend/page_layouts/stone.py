@@ -1,0 +1,132 @@
+import streamlit as st
+from datetime import date
+import pandas as pd
+from utils.constants import (
+    CONSTRUCTION_STAGES,
+    DEFAULT_STONE_VENDOR,
+    STONES_TYPES_COST,
+    DATE_FORMAT
+)
+
+from services.api_client import (
+    add_stone_expenses_entry, get_stone_expenses_entry, get_stone_expenses_metrics)
+from components.metric_cards import render_data_metrics_style3
+
+def sample_data():
+    return {
+        "total_spend": 150000.0,
+        "total_trucks": 10,
+        "total_paid": 120000.0,
+        "outstanding_amount": 30000.0,
+        "type_breakdown": {
+            "20MM": {"loads": 4, "cost": 60000.0},
+            "40MM": {"loads": 3, "cost": 45000.0},
+            "ROCKS": {"loads": 3, "cost": 45000.0}
+        }
+    }
+
+def render_stone_metrics():
+    data = get_stone_expenses_metrics(params=None)
+    if isinstance(data, dict) and data.get("detail") == "Not Found":
+        data=sample_data()
+    elif isinstance(data, dict) and data.get("error"):
+        st.error(data["error"])
+    else:
+        # Row 1: Overall summary
+        summary_metrics = {
+            "Total Spend": f"₹ {data['total_spend']:,.0f}",
+            "Total Loads": f"{data['total_trucks']}",
+            "Total Paid": f"₹ {data['total_paid']:,.0f}",
+            "Outstanding": f"₹ {data['outstanding_amount']:,.0f}"
+        }
+        render_data_metrics_style3(dict_datametrics=summary_metrics)
+
+        # Row 2: Type-wise breakdown (20mm / 40mm / Rocks)
+        type_breakdown = data.get("type_breakdown", {})
+        if type_breakdown:
+            type_metrics = {}
+            for stone_type, info in type_breakdown.items():
+                type_metrics[f"{stone_type} Loads"] = f"{info['loads']}"
+                type_metrics[f"{stone_type} Cost"] = f"₹ {info['cost']:,.0f}"
+            render_data_metrics_style3(dict_datametrics=type_metrics)
+
+
+def render_add_stone_entry_form():
+    with st.container(border=True):
+        st.subheader("Add Stone Purchase")
+
+        col1, col2 = st.columns(2)
+        with col1:
+            delivery_date = st.date_input("Date", key="stone_date", value=date.today(), format=DATE_FORMAT)
+            stone_type = st.selectbox("Stone Type", list(STONES_TYPES_COST.keys()))
+            vendor_name = st.text_input("Vendor Name", value=DEFAULT_STONE_VENDOR, key="stone_vendor_name")
+            driver_payment = st.radio("Driver Payment", ["No", "Yes"], horizontal=True, key="stone_driver_payment")
+                
+        with col2:
+            construction_stage = st.selectbox("Construction Stage", CONSTRUCTION_STAGES, key="stone_construction_stage")
+            cost_per_truck = st.number_input("Cost Per Truck", value=STONES_TYPES_COST[stone_type], step=100.00)
+            no_of_trucks = st.number_input("Number of Trucks", min_value=0, key="stone_no_of_trucks", step=1)
+            if driver_payment == "Yes":
+                driver_amount = st.number_input("Driver Amount", min_value=50, step=50)
+            else :
+                driver_amount = st.number_input("Driver Amount", value=0, disabled=True)
+
+        # Total Amount Calculation        
+        total_amount = (no_of_trucks * cost_per_truck) + driver_amount
+        st.metric("Total Amount ", f"₹{total_amount:,.2f}")   
+
+        col6, col7 = st.columns(2)
+        with col6:
+            paid_date = st.date_input("Payment Date", key="paid_date",value=date.today(), format=DATE_FORMAT)
+            payment_mode = st.selectbox("Payment Mode", ["Cash", "Bank Transfer", "UPI"], key="sand_payment_mode")
+        with col7:
+            payment_amount = st.number_input("Payment Amount", min_value=0.0, value=total_amount)
+
+
+        if st.button("Add Stone Entry"):
+            if not vendor_name.strip():
+                st.error("⚠️ Vendor name is required")
+            elif cost_per_truck<=0:
+                st.error(" cost_per_truck is required greater than 0")
+            elif no_of_trucks<=0:
+                st.error("no_of_truck is required greater than 0")    
+            elif driver_payment == "Yes" and driver_amount <= 0:
+                st.error("⚠️ Driver amount must be greater than 0")
+            elif payment_amount <= 0:
+                st.error("⚠️ Payment Amount must be greater than 0")
+                return None
+            else:
+                stone_entry={  
+                "delivery_date": str(delivery_date),
+                "construction_stage": construction_stage ,
+                "stone_type":stone_type,
+                "cost_per_truck":cost_per_truck,
+                "vendor_name":vendor_name,
+                "no_of_trucks": int(no_of_trucks),
+                "driver_amount": driver_amount,
+                "total_amount":total_amount,
+                "payment_amount":payment_amount,
+                "payment_mode": payment_mode, 
+                "payment_date": str(paid_date),   
+                }
+                st.write(stone_entry)
+                result = add_stone_expenses_entry(stone_entry)
+                if isinstance(result, dict) and result.get("error"):
+                    st.error(result["error"])
+                else:
+                    st.success("Stone entry submitted successfully")
+
+def render_expenses_history():
+    data = get_stone_expenses_entry()
+    from components.editable_table import render_editable_history
+    render_editable_history(data, "stone")
+
+def render_stone():
+    st.title("🪨 Stone (Jelly) Management")
+    st.write("Track and manage your stone materials efficiently. Keep records of purchases, usage in construction, and maintain clear visibility of stock levels.")
+    render_stone_metrics()
+    
+    render_add_stone_entry_form()
+
+    st.divider()
+    render_expenses_history()
