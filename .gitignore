@@ -1,17 +1,26 @@
 # Python-generated files
 __pycache__/
-*.py[oc]
+*.py[cod]
+*.egg-info/
 build/
 dist/
 wheels/
-*.egg-info
 
 # Virtual environments
-.venv
+.venv/
+venv/
 
+# Environment variables and secrets
 .env
 .env.*
 !.env.example
-.venv/
-__pycache__/
 .streamlit/secrets.toml
+
+# IDE settings
+.vscode/
+
+# Logs
+*.log
+
+# Local backup files
+bkp/
