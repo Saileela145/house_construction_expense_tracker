@@ -258,6 +258,14 @@ Potential improvements include:
 - Cloud deployment for remote access.
 
 ---
+## 🔐 Admin Login Credentials
+
+| Field | Value |
+|---|---|
+| Username | `Leela314` |
+| Email | `Leela@project.com` |
+| Password | `Leela_14` |
+| Role | Admin |
 
 ## 👩‍💻 Author
 
