@@ -2,10 +2,10 @@ import streamlit as st
 from services.api_client import login
 
 def login_form():
-    st.title("Construct IQ Login")
+    st.title("HC_Expense Tracker Login")
 
-    email = st.text_input("Email",value="admin@example.com")
-    password = st.text_input("Password", type="password", value="admin710")
+    email = st.text_input("Email", placeholder="Enter your email")
+    password = st.text_input("Password", type="password",placeholder="Enter your password")
 
     if st.button("Login"):
         res = login(email, password)

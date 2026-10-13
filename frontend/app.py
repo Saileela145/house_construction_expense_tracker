@@ -16,7 +16,7 @@ from page_layouts.site_expenses import render_site_expenses
 from page_layouts.bulk_load import render_bulk_load
 from page_layouts.civil_contract import render_civil_contract
 
-DISABLE_LOGIN = True
+DISABLE_LOGIN = False  # Set to True to disable login for testing purposes
 
 if DISABLE_LOGIN:
     st.session_state.authenticated = True
