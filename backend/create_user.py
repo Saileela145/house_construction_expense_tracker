@@ -1,17 +1,32 @@
 # create_user.py
 import os
+from pathlib import Path
+from dotenv import load_dotenv
 from database.db import SessionLocal
 from models.user import User
 from passlib.context import CryptContext
+
+
+# Load the project's root .env file
+ENV_FILE = Path(__file__).resolve().parents[1] / ".env"
+load_dotenv(ENV_FILE)
 
 
 def create_admin_user():
     db = SessionLocal()
     pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
     try:
-        existing = db.query(User).filter(User.email == os.getenv("ADMIN_EMAIL")).first()
+        existing = db.query(User).filter(
+            User.email == os.getenv("ADMIN_EMAIL")
+        ).first()
+
         if existing:
-            print(f"Admin user already exists: id={existing.id} email={existing.email}")
+            existing.name = os.getenv("ADMIN_USERNAME")
+            existing.hashed_password = pwd_context.hash(
+                os.getenv("ADMIN_PASSWORD")
+            )
+            db.commit()
+            print(f"Admin credentials updated: {existing.email}")
             return
 
         user = User(
